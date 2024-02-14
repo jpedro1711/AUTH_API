@@ -140,3 +140,4 @@ C:\projetosvscode-.net\authAPI\obj\Debug\net8.0\ref\authAPI.dll
 C:\projetosvscode-.net\authAPI\bin\Debug\net8.0\Scrutor.dll
 C:\projetosvscode-.net\authAPI\bin\Debug\net8.0\Swashbuckle.AspNetCore.Filters.dll
 C:\projetosvscode-.net\authAPI\bin\Debug\net8.0\Swashbuckle.AspNetCore.Filters.Abstractions.dll
+C:\projetosvscode-.net\authAPI\obj\Debug\net8.0\authAPI.sourcelink.json

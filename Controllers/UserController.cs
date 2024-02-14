@@ -13,7 +13,10 @@ namespace authAPI
   public class UserController : Controller
   {
     private AuthApiContext _context;
+    private readonly IHttpContextAccessor _accessor = new HttpContextAccessor();
     private IConfiguration _configuration;
+
+
     public UserController(IConfiguration configuration) {
       _context = new AuthApiContext();
       _configuration = configuration;
@@ -64,7 +67,7 @@ namespace authAPI
     }
 
     [Authorize]
-    [HttpGet("{username}")]
+    [HttpGet("username/{username}")]
     public async Task<Usuario> GetByUsername(string username)
     {
       var result = await _context.Usuario.Include("Role").FirstOrDefaultAsync(u => u.Username == username);
@@ -79,7 +82,8 @@ namespace authAPI
     {
       List<Claim> claims = new List<Claim> {
         new Claim(ClaimTypes.Name, user.Username),
-        new Claim(ClaimTypes.Role, user.Role.Name)
+        new Claim(ClaimTypes.Role, user.Role.Name),
+        new Claim("UserId", user.UserId.ToString())
       };
 
       var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Token").Value!));
@@ -105,14 +109,31 @@ namespace authAPI
         return Ok("Token válido");
     }
 
-    public static IEnumerable<Claim> GetClaims(Usuario user)
+    [Authorize]
+    [HttpGet("{id}")]
+    public Usuario FindById(int id)
     {
-        var result = new List<Claim>
-        {
-            new(ClaimTypes.Name, user.Username),
-            new(ClaimTypes.Role, user.Role.Name)
-        };
-        return result;
+      return _context.Usuario.FirstOrDefault(u => u.UserId == id);
+    }
+
+    [Authorize]
+    [HttpGet("getUserWithToken/{token}")]
+    public Usuario GetUserId(string token)
+    {
+      var tokenHandler = new JwtSecurityTokenHandler();
+      var jwtToken = tokenHandler.ReadToken(token) as JwtSecurityToken;
+
+      if (jwtToken != null)
+      {
+        var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "UserId");
+
+            if (userIdClaim != null)
+            {
+                int userId = Convert.ToInt32(userIdClaim.Value);
+                return FindById(userId);
+            }
+      }
+      return null;
     }
   }
 }
