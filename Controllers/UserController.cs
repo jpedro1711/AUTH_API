@@ -1,10 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 
 namespace authAPI
 {
@@ -13,33 +10,34 @@ namespace authAPI
   public class UserController : Controller
   {
     private AuthApiContext _context;
-    private readonly IHttpContextAccessor _accessor = new HttpContextAccessor();
+    private readonly TokenService tokenService;
+    private readonly UserRepository repository;
     private IConfiguration _configuration;
-
 
     public UserController(IConfiguration configuration) {
       _context = new AuthApiContext();
       _configuration = configuration;
+      tokenService = new TokenService(_configuration);
+      repository = new UserRepository();
     }
 
-    [HttpPost("cadastrar")]
-    public async Task<IActionResult> Register([FromBody] UserDto userDto)
+    [HttpPost("Cadastrar")]
+    public IActionResult Register([FromBody] UserDto userDto)
     {
       string passwordHash = BCrypt.Net.BCrypt.HashPassword(userDto.Password);
       
-      Usuario u = new Usuario();
-      u.Username = userDto.Username;
+      Usuario u = userDto.ToEntity();
       u.PasswordHash = passwordHash;
-      u.RoleId = userDto.RoleId;
-      await _context.Usuario.AddAsync(u);
-      await _context.SaveChangesAsync();
+      
+      repository.Create(u);
+
       return Created();
     }
 
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
+    [HttpPost("Login")]
+    public IActionResult Login([FromBody] LoginDto loginDto)
     {
-      Usuario user = await this.GetByUsername(loginDto.Username);
+      Usuario user = GetByUsername(loginDto.Username);
       
       if (user == null)
       {
@@ -50,12 +48,14 @@ namespace authAPI
       {
         return BadRequest("Senha incorreta");
       }
-      string token = CreateToken(user);
+      string token = tokenService.CreateToken(user);
+      
       LoginResponseDto res = new LoginResponseDto();
       res.Username = user.Username;
       res.Password = user.PasswordHash;
       res.Token = token;
       res.Role = user.Role.Name;
+      res.UserID = user.UserId;
       return Ok(res);
     }
 
@@ -67,46 +67,10 @@ namespace authAPI
     }
 
     [Authorize]
-    [HttpGet("username/{username}")]
-    public async Task<Usuario> GetByUsername(string username)
+    [HttpGet("Username/{username}")]
+    public Usuario GetByUsername(string username)
     {
-      var result = await _context.Usuario.Include("Role").FirstOrDefaultAsync(u => u.Username == username);
-      if (result == null)
-      {
-        return null;
-      }
-      return result;
-    }
-
-    private string CreateToken(Usuario user)
-    {
-      List<Claim> claims = new List<Claim> {
-        new Claim(ClaimTypes.Name, user.Username),
-        new Claim(ClaimTypes.Role, user.Role.Name),
-        new Claim("UserId", user.UserId.ToString())
-      };
-
-      var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Token").Value!));
-
-      var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
-
-      var token = new JwtSecurityToken(
-        claims: claims,
-        expires: DateTime.Now.AddDays(1),
-        signingCredentials: credentials
-      );
-
-      var jwt = new JwtSecurityTokenHandler().WriteToken(token);
-
-      return jwt;
-    }
-
-    [Authorize]
-    [HttpPost("verificarToken")]
-    public IActionResult VerificarToken()
-    {
-        // Se a execução chegar aqui, o token é válido
-        return Ok("Token válido");
+      return repository.GetByUsername(username);
     }
 
     [Authorize]
@@ -117,7 +81,7 @@ namespace authAPI
     }
 
     [Authorize]
-    [HttpGet("getUserWithToken/{token}")]
+    [HttpGet("GetUserWithToken/{token}")]
     public Usuario GetUserId(string token)
     {
       var tokenHandler = new JwtSecurityTokenHandler();

@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using authAPI;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -55,6 +56,7 @@ app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().WithOrigins("http://localho
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
+app.UseMiddleware<ErrorMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();

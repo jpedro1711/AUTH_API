@@ -7,6 +7,7 @@ namespace authAPI
   {
     public DbSet<Usuario> Usuario {get; set;} = null!;
     public DbSet<Role> Role {get; set;} = null!;
+    public DbSet<Todo> Todo {get; set;} = null!;
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.UseSqlServer(@"Server=LAPTOP-P8BTRSBI\SQLEXPRESS;Database=DB_JWT;Trusted_Connection=True;MultipleActiveResultSets=True;TrustServerCertificate=True");
