@@ -13,5 +13,7 @@ namespace authAPI
         [ForeignKey("UserId")]
         public int UserId {get; set;}
         public Usuario User {get; set;}
+
+        public bool Done {get; set;} = false;
     }
 }

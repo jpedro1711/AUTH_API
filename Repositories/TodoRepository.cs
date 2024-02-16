@@ -42,6 +42,7 @@ namespace authAPI
             existing.Description = todo.Description;
             existing.Deadline = todo.Deadline;
             existing.UserId = todo.UserId;
+            existing.Done = todo.Done;
             _context.SaveChanges();
             return existing;
         }
